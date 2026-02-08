@@ -1,0 +1,84 @@
+---
+job: extension
+config:
+  # this name will be the folder and filename name
+  name: "lora_flux2_klein_4b_32gb_hair_color_ash_1"
+  process:
+    - type: 'diffusion_trainer'
+      # root folder to save training sessions/samples/weights
+      training_folder: "output_hair_color_ash"
+      # uncomment to see performance stats in the terminal every N steps
+#      performance_log_every: 1000
+      device: cuda:0
+      network:
+        type: "lora"
+        linear: 32
+        linear_alpha: 32
+      save:
+        dtype: float16 # precision to save
+        save_every: 500 # save every this many steps
+        max_step_saves_to_keep: 16 # how many intermittent saves to keep
+      datasets:
+        # datasets are a folder of images. captions need to be txt files with the same name as the image
+        # for instance image2.jpg and image2.txt. Only jpg, jpeg, and png are supported currently
+        # images will automatically be resized and bucketed into the resolution specified
+        # on windows, escape back slashes with another backslash so
+        # "C:\\path\\to\\images\\folder"
+        - folder_path: "/home/user/ai-toolkit/hair_color_ash/after"
+          # can do multiple control image folders, file names must match target file names, but aspect/size can be different
+          control_path:
+            - "/home/user/ai-toolkit/hair_color_ash/before"
+            # - "/path/to/control/images/folder2"
+            # - "/path/to/control/images/folder3"
+          caption_ext: "txt"
+          # default_caption: "a person" # if caching text embeddings, if you don't have captions, this will get cached
+          caption_dropout_rate: 0.0 # will drop out the caption 5% of time
+          resolution: [768, 1024, 1280, 1536]  # flux2 klein supports multiple resolutions
+          # a trigger word that can be cached with the text embeddings 
+          # trigger_word: "optional trigger word"
+      train:
+        batch_size: 1
+        # caching text embeddings is required for 32GB
+        cache_text_embeddings: true
+        # unload_text_encoder: false  # klein uses Qwen3 text encoder
+        
+        steps: 5000  # total number of steps to train 500 - 4000 is a good range
+        gradient_accumulation: 1
+        timestep_type: "weighted"
+        train_unet: true
+        train_text_encoder: false  # probably won't work with flux2 klein
+        gradient_checkpointing: true  # need this on unless you have a ton of vram
+        noise_scheduler: "flowmatch" # for training only
+        optimizer: "adamw8bit"
+        lr: 2e-4
+        # uncomment this to skip the pre training sample
+        # skip_first_sample: true
+        # uncomment to completely disable sampling
+        # disable_sampling: true
+        dtype: bf16
+      model:
+        # huggingface model name or path
+        name_or_path: "black-forest-labs/FLUX.2-klein-base-4B"
+        arch: "flux2_klein_4b"
+        quantize: true
+        qtype: "qfloat8"  # flux2 klein uses qfloat8 quantization
+        quantize_te: true
+        qtype_te: "qfloat8"
+        low_vram: true
+        # model_kwargs:
+        #   match_target_res: false  # optional: match target resolution
+      sample:
+        sampler: "flowmatch" # must match train.noise_scheduler
+        sample_every: 500 # sample every this many steps
+        width: 1792
+        height: 2400
+        # you can provide multiple control images here
+        samples:
+          - prompt: "Change the hair color to a deep light bright ash blonde with cool gray depth and a clearly visible yet refined pink undertone. Don't change anything else." 
+            ctrl_img_1: "/home/user/ai-toolkit/hair_color_ash/before/4.jpg"
+        neg: ""
+        seed: 100
+        walk_seed: false
+        guidance_scale: 4
+        sample_steps: 20
+
