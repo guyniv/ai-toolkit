@@ -1,0 +1,60 @@
+job: extension
+config:
+  name: lora_flux2_klein_4b_32gb_hair_color_v1_1
+  process:
+  - type: diffusion_trainer
+    training_folder: output_hair_color
+    device: cuda:0
+    network:
+      type: lora
+      linear: 16
+      linear_alpha: 16
+    save:
+      dtype: float16
+      save_every: 500
+      max_step_saves_to_keep: 16
+    datasets:
+    - folder_path: /home/user/ai-toolkit/hair_color_dataset/after
+      control_path:
+      - /home/user/ai-toolkit/hair_color_dataset/before
+      caption_ext: txt
+      caption_dropout_rate: 0.0
+      resolution:
+      - 768
+      - 1024
+      - 1280
+      - 1536
+    train:
+      batch_size: 1
+      cache_text_embeddings: true
+      steps: 5000
+      gradient_accumulation: 1
+      timestep_type: weighted
+      train_unet: true
+      train_text_encoder: false
+      gradient_checkpointing: true
+      noise_scheduler: flowmatch
+      optimizer: adamw8bit
+      lr: 5.0e-05
+      dtype: bf16
+    model:
+      name_or_path: black-forest-labs/FLUX.2-klein-base-4B
+      arch: flux2_klein_4b
+      quantize: true
+      qtype: qfloat8
+      quantize_te: true
+      qtype_te: qfloat8
+      low_vram: true
+    sample:
+      sampler: flowmatch
+      sample_every: 500
+      width: 1024
+      height: 1024
+      samples:
+      - prompt: Change the hair color to blonde. Don't change anything else.
+        ctrl_img_1: /home/user/ai-toolkit/hair_color_dataset/before/4.png
+      neg: ''
+      seed: 100
+      walk_seed: false
+      guidance_scale: 4
+      sample_steps: 20
